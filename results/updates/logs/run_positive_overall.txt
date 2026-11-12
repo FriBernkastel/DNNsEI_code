@@ -1,0 +1,18 @@
+# 命令: python -m updates.run_positive_overall
+# 记录时间: 2026-11-05  （目标：让 Overall EI 转正；结果：失败，越训越负）
+
+=== A. sigmoid + w=3 + Adam（摘录）===
+  ep     1  MSE=0.22993  sigma=0.4770  OverallEI=-7.84   (L1=+9.57 L2=+3.71 L3=+1.09)
+  ep   200  MSE=0.01466  sigma=0.1211  OverallEI=-15.66  (L1=+1.01 L2=-7.05 L3=-0.64)
+  ep  2000  MSE=0.00778  sigma=0.0882  OverallEI=-29.01  (L1=-0.46 L2=-15.89 L3=-6.04)
+  ep 10000  MSE=0.00556  sigma=0.0745  OverallEI=-43.25  (L1=+11.34 L2=-16.07 L3=-9.12)
+  → 越过 0 的 epoch: 未越过
+
+=== B. tanh + w=2 + Adam（摘录）===
+  ep     1  MSE=0.35251  sigma=0.4939  OverallEI=-4.88   (L1=+5.49 L2=+2.70 L3=+1.50)
+  ep   200  MSE=0.01538  sigma=0.1237  OverallEI=-3.52   (L1=+3.75 L2=+1.32 L3=+1.51)
+  ep  2000  MSE=0.01071  sigma=0.1035  OverallEI=-11.55  (L1=+4.36 L2=-5.00 L3=+0.13)
+  ep 10000  MSE=0.00546  sigma=0.0739  OverallEI=-17.06  (L1=+7.49 L2=-11.05 L3=+1.63)
+  → 越过 0 的 epoch: 未越过
+
+结论：MSE 压到 0.005 时 Overall EI 反而崩掉（体积项被饱和摧毁）。

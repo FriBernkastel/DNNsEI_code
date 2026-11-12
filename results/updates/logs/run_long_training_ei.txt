@@ -1,0 +1,15 @@
+# 命令: python -m updates.run_long_training_ei
+# 记录时间: 2026-11-05  （SGD lr=0.01，训练 20000 轮，仅在 epoch 1 与 20000 测 EI）
+
+Epoch     1/20000 | Train MSE=0.231681 | overall_sigma=0.476798 | Overall EI=-12.554033 bits
+Epoch 20000/20000 | Train MSE=0.015913 | overall_sigma=0.125996 | Overall EI=-4.176450 bits
+
+=== summary ===
+epoch 1:     train_mse=0.2317  test_mse=0.2316  overall_sigma=0.4768  OverallEI=-12.554
+   L1: EI=+7.990  Sens=-8.529   term1=+45.659  logpdet_bits=-13.698
+   L2: EI=+1.571  Sens=-15.431  term1=+30.891  logpdet_bits=-23.036
+   L3: EI=+0.023  Sens=-10.808  term1=+8.785   logpdet_bits=-8.668
+epoch 20000: train_mse=0.0159  test_mse=0.0132  overall_sigma=0.1260  OverallEI=-4.176
+   L1: EI=+2.360  Sens=-5.208   term1=+20.539  logpdet_bits=-11.101
+   L2: EI=+1.906  Sens=-9.735   term1=+23.930  logpdet_bits=-14.402
+   L3: EI=+1.705  Sens=-6.962   term1=+14.545  logpdet_bits=-6.019

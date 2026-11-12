@@ -1,0 +1,19 @@
+# 命令: python -m updates.diagnose_mse2
+# 记录时间: 2026-11-05  （严格使用 IrisSigmoidNet）
+
+=== A. 原配置（4000 ep, SGD 0.01, 无 bias, 原始输入）===
+    ep  1000: train MSE 0.2201
+    ep  2000: train MSE 0.2041
+    ep  4000: train MSE 0.1178
+baseline                   train 0.1178  test 0.1176  acc 0.683/0.700 | sampleMSE med 0.1393 p90 0.1925 max 0.2131 | 平均置信度 0.620
+
+=== B. 同一配置训练到 20000 ep ===
+    ep  8000: train MSE 0.0838
+    ep 20000: train MSE 0.0158
+20000 epochs               train 0.0158  test 0.0132  acc 0.975/1.000 | sampleMSE med 0.0024 p90 0.0172 max 0.5407 | 平均置信度 0.921
+
+=== C. Adam lr=0.01, 4000 ep ===
+    ep  1000: train MSE 0.0102
+    ep  2000: train MSE 0.0073
+    ep  4000: train MSE 0.0056
+Adam                       train 0.0056  test 0.0001  acc 0.992/1.000 | sampleMSE med 0.0000 p90 0.0000 max 0.6660 | 平均置信度 0.998

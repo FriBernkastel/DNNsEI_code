@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+
+# 本地虚拟环境（如果以后放在项目内）
+.venv/
+venv/
+env/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件与日志
+*.log
+*.tmp
+*.bak
+*.swp
+~$*
+
+# matplotlib / 缓存
+.mplconfig/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# 说明：results/ 目前**纳入**版本控制（图与 CSV 是实验记录）。
+# 若仓库变得过大，可执行：
+#   git rm -r --cached results
+# 并在本文件追加一行 `results/`，之后 results 不再入库（历史仍保留）。

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>连续版 EI 实验图片说明（2026-10-22）</title>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+  :root { --ink: #1f2733; --muted: #5b6675; --line: #dfe4ea; --accent: #3182bd; --bg-soft: #f6f8fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif; color: var(--ink); line-height: 1.75; background: #fff; }
+  main { max-width: 1080px; margin: 0 auto; padding: 40px 28px 80px; }
+  h1 { font-size: 1.9rem; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
+  h2 { font-size: 1.45rem; margin-top: 2.6em; border-left: 5px solid var(--accent); padding-left: 12px; }
+  h3 { font-size: 1.15rem; margin-top: 1.8em; color: var(--accent); }
+  h4 { font-size: 1.02rem; margin-top: 1.4em; }
+  figure { margin: 1.4em 0 2em; text-align: center; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+  figcaption { margin-top: .6em; font-size: .92rem; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .94rem; }
+  th, td { border: 1px solid var(--line); padding: 7px 12px; text-align: left; }
+  th { background: var(--bg-soft); }
+  code { background: var(--bg-soft); padding: 1px 6px; border-radius: 4px; font-size: .9em; }
+  pre { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; overflow-x: auto; }
+  .note { background: #fff8e6; border: 1px solid #f0dfa8; border-radius: 8px; padding: 12px 18px; margin: 1.2em 0; }
+  .formula { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 8px; padding: 6px 18px; margin: 1em 0; }
+  ul { padding-left: 1.4em; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>连续版 EI 实验图片说明</h1>
+<p>本文档汇总 2026-10-22 会话中生成的全部实验图片，给出 Sensitivity / Degeneracy 在离散与连续两种口径下的完整推导与对照，并解释每张图的计算设置与趋势含义。涉及的代码已重构为 <code>eicore/</code>（核心库）+ <code>experiments/</code>（实验入口）结构，测试位于 <code>tests/</code>。</p>
+
+<table>
+  <tr><th>图片</th><th>实验</th><th>内容</th></tr>
+  <tr><td><code>latest/iris_continuous_ei/loss_curve.png</code></td><td>IRIS 训练（连续版）</td><td>4000 epoch 训练/测试 MSE</td></tr>
+  <tr><td><code>latest/iris_continuous_ei/ei_decomposition.png</code></td><td>IRIS 训练（连续版）</td><td>各层 EI / Sensitivity / Degeneracy 随训练的曲线</td></tr>
+  <tr><td><code>latest/iris_discrete_ei/ei_decomposition.png</code></td><td>IRIS 训练（离散版，轻量口径）</td><td>各层离散 EI / Sensitivity / Degeneracy 随训练的曲线</td></tr>
+  <tr><td><code>latest/iris_continuous_vs_discrete.png</code></td><td>IRIS 训练（两口径对比）</td><td>连续 vs 离散 2×3 分解对比</td></tr>
+  <tr><td><code>latest/figure1_ei_decomposition/single_edge_ei.png</code></td><td>论文 Figure 1 单边</td><td>A→B 权重扫描：离散 vs 连续 EI</td></tr>
+  <tr><td><code>latest/figure1_ei_decomposition/two_to_one_{sigmoid,tanh,relu}.png</code></td><td>论文 Figure 1 双入单出</td><td>A,B→C 权重网格上 EI / Sensitivity / Degeneracy 热图</td></tr>
+  <tr><td><code>latest/figure1_ei_decomposition/two_to_one_diagonal.png</code></td><td>论文 Figure 1 双入单出</td><td>对角线切片：离散 vs 连续三项指标对比</td></tr>
+</table>
+
+<p class="note">图片统一引用 <code>results/latest/…</code>：实验脚本结束时会自动把最新一次运行的 png/csv 镜像到该目录，重跑实验后无需修改本文件的路径。手动补刷：<code>python -m tools.publish_latest</code>。</p>
+
+<h2>1. Sensitivity / Degeneracy 公式推导：离散 vs 连续</h2>
+
+<h3>1.1 共同起点：EI 的两种计算路线</h3>
+<p>论文对层间 EI 的定义是最大熵干预下的互信息：</p>
+<div class="formula">
+$$ \mathrm{EI}(L_1 \to L_2) = I(L_1; L_2)\ \big|\ do(L_1 = H_{max}) $$
+</div>
+<p>即对上游层做独立均匀（最大熵）注入，度量上游状态与下游状态之间的互信息。"离散版"与"连续版"的区别只在如何计算这个互信息：</p>
+<ul>
+  <li><strong>离散版（论文原方法）</strong>：把注入值和输出值都均匀分箱，用联合直方图估计经验分布，直接算离散互信息；</li>
+  <li><strong>连续版（本项目的解析近似）</strong>：给输出加一个高斯噪声模型 $Y = f(X) + \varepsilon$，条件熵 $H(Y|X)=H(\varepsilon)$ 有解析式，输出熵 $H(Y)$ 用变量替换公式经 Jacobian 的局部体积近似得到。</li>
+</ul>
+
+<h3>1.2 离散版推导</h3>
+
+<h4>第一步：分箱互信息</h4>
+<p>设上游层 $n$ 个神经元各自均匀注入并离散为 $b$ 个 bin，则 cause 状态数 $N_c = b^n$。输入编码为联合状态 $C$，输出编码为联合状态 $E$：</p>
+<div class="formula">
+$$ \mathrm{EI} = I(C;E) = \sum_{c,e} p(c,e)\log_2\frac{p(c,e)}{p(c)\,p(e)} = H(E) - H(E|C) $$
+</div>
+
+<h4>第二步：传统分解 EI = determinism − degeneracy</h4>
+<p>在 Boolean network / Markov chain 传统里，用最大 cause 熵 $\log_2 N_c$ 归一化：</p>
+<div class="formula">
+$$ \mathrm{det} = 1 - \frac{H(E|C)}{\log_2 N_c},\qquad \mathrm{deg} = 1 - \frac{H(E)}{\log_2 N_c},\qquad \frac{\mathrm{EI}}{\log_2 N_c} = \mathrm{det} - \mathrm{deg} $$
+</div>
+<p>含义：determinism 度量"给定 cause 后 effect 有多确定"，degeneracy 度量"多少不同的 cause 压到同一个 effect"（输出熵的损失）。</p>
+
+<h4>第三步：DNN 中用 sensitivity 替代 determinism</h4>
+<p>前馈网络是<strong>确定性映射</strong>：给定连续输入，输出唯一确定，$H(E|C)\approx 0$（仅来自 bin 内样本跨界的微小噪声），于是 det ≈ 1 恒成立、没有区分度。论文因此改用 sensitivity：</p>
+<div class="formula">
+$$ \mathrm{Sens}_{disc} = \sum_{i=1}^{n}\sum_{j=1}^{m} I(T_i;\,T_j),\qquad T_i:\ do\big(X_i \sim U(\text{激活范围}),\ X_{k\ne i} = 0\big) $$
+</div>
+<p>即每次只扰动一个输入神经元（其余固定为 0），记录每个输出神经元，逐对算 MI 再求和。然后：</p>
+<div class="formula">
+$$ \mathrm{Deg}_{disc} = \mathrm{Sens}_{disc} - \mathrm{EI} = \sum_{i,j} I(T_i;T_j)\;-\; I\big((X_1,\dots,X_n);\,Y\big) $$
+</div>
+<p><strong>直觉</strong>：单边扰动时每条路径独占输出；联合注入时多条路径同时变化、在输出上互相干扰（输出分不清变化是谁引起的），所以联合 MI 通常小于单边 MI 之和，$\mathrm{Deg}_{disc} \ge 0$。两条路径效果重叠越多，degeneracy 越大。当映射"逐边独立"（如单位阵，$Y_j$ 只依赖 $X_j$）时等号成立、deg ≈ 0（我们的单元测试锁定了这一点；分箱噪声可带来约 −0.1 bits 的小负偏差）。</p>
+<p><strong>双入单出显式</strong>：</p>
+<div class="formula">
+$$ \mathrm{Deg}_{disc} = I(A;C)\big|_{do(B=0)} + I(B;C)\big|_{do(A=0)} - I\big((A,B);C\big) $$
+</div>
+<p>注意它与交互信息（co-information）$I(A;C)+I(B;C)-I((A,B);C)$ 形式相同，但 sensitivity 的单边 MI 是在 $do(B{=}0)$、$do(A{=}0)$ 的不同干预分布下算的，不是同一分布下的条件 MI，因此不服从 co-information 可负的结论，在该口径下通常非负。</p>
+
+<h3>1.3 连续版推导</h3>
+
+<h4>第一步：噪声模型与条件熵项</h4>
+<p>设 $X\in\mathbb{R}^n \to Y\in\mathbb{R}^m$，无偏置 $Y = a(WX) + \varepsilon$，$\varepsilon\sim\mathcal N(0,\mathrm{diag}(\sigma_1^2,\dots,\sigma_m^2))$，注入 $X\sim U(\Omega)$，$\Omega=\prod_i[l_i,u_i]$，$H(X)=\sum_i \log w_i$（$w_i=u_i-l_i$ 为区间宽度）。则：</p>
+<div class="formula">
+$$ I(X;Y) = H(Y) - H(Y|X),\qquad H(Y|X) = H(\varepsilon) = \frac12\sum_{j=1}^m \log\big(2\pi e\,\sigma_j^2\big) $$
+</div>
+<p>这就是 <strong>term1（确定性项）</strong>：$-\,H(Y|X)$。训练实验中 $\sigma_{l,j}$ 取每层每个输出神经元反传梯度的 std（训练越好、误差信号越小、term1 越大 = 任务确定性越强）；Overall EI 用输出残差 std。</p>
+
+<h4>第二步：输出熵的 Jacobian 局部体积近似</h4>
+<p>若 $f$ 可逆（$m=n$），变量替换公式给出 $H(Y) = H(X) + \mathbb E_x[\log|\det J|]$；矩形情形用伪行列式（奇异值之积）作局部体积元近似：</p>
+<div class="formula">
+$$ J(x) = \mathrm{diag}\big(a'(Wx)\big)\,W,\qquad \log \mathrm{pdet}\,J = \sum_{k=1}^{\min(m,n)} \log s_k,\qquad H(Y) \approx H(X) + \mathbb E_x[\log \mathrm{pdet}\,J] $$
+</div>
+<p>合得 <strong>full EI</strong>（并除以 $n$ 归一化）：</p>
+<div class="formula">
+$$ \mathrm{EI}_{full} = \frac{1}{n}\Big[\underbrace{-\tfrac12\sum_j\log(2\pi e\sigma_j^2)}_{\text{term1：确定性}} + \underbrace{\sum_i\log w_i + \mathbb E_x\sum_k \log s_k(x)}_{\text{term2：非简并性}}\Big] $$
+</div>
+
+<h4>第三步：逐边 EI 与 sensitivity</h4>
+<p>与离散版 $\sum_{i,j} I(T_i;T_j)$ 对应，每条边 $i\to j$ 看成 $1\to1$ 系统 $Y_j = a(W_{ji}X_i) + \varepsilon_j$：</p>
+<div class="formula">
+$$ I(X_i;Y_j) = -\frac12\log\big(2\pi e\,\sigma_j^2\big) + \log w_i + \mathbb E_x\big[\log|J_{ji}|\big],\qquad J_{ji} = a'(z_j)\,W_{ji} $$
+</div>
+<p>严格逐边求和（<strong>约定 A</strong>，与离散版 $\sum_{i,j} I(T_i;T_j)$ 完全对齐）时每条边都携带自己的 $-H(\varepsilon_j)$ 和 $H(X_i)$：</p>
+<div class="formula">
+$$ \mathrm{Sens}_A^{norm} = \frac1n\sum_{i,j} I(X_i;Y_j) = \underbrace{-\tfrac12\sum_j\log(2\pi e\sigma_j^2)}_{=\text{term1（不除 }n\text{）}} + \frac{m}{n}H(X) + \frac1n\sum_{i,j}\mathbb E\log|J_{ji}| $$
+</div>
+<p><strong>当前代码实现采用约定 B</strong>：term1 与 $H(X)$ 只计一份再整体除 $n$：</p>
+<div class="formula">
+$$ \mathrm{Sens}_B^{norm} = \frac1n\Big[-\tfrac12\sum_j\log(2\pi e\sigma_j^2) + H(X) + \sum_{i,j}\mathbb E\log|J_{ji}|\Big] $$
+</div>
+
+<h4>第四步：degeneracy = Sens − EI</h4>
+<p><strong>约定 A</strong>（term1 不抵消）：</p>
+<div class="formula">
+$$ \mathrm{Deg}_A = \underbrace{\frac{n-1}{n}\Big[-\tfrac12\sum_j\log(2\pi e\sigma_j^2)\Big]}_{\text{确定性冗余}\ \ge 0\ (\sigma_j<1/\sqrt{2\pi e})} + \underbrace{\frac{m-1}{n}H(X)}_{\ge 0} + \underbrace{\frac1n\Big[\sum_{i,j}\mathbb E\log|J_{ji}| - \mathbb E\log\mathrm{pdet}\,J\Big]}_{\text{Jacobian 重叠项}} $$
+</div>
+<p><strong>约定 B</strong>（term1 恰好抵消，只剩 Jacobian 重叠项）：</p>
+<div class="formula">
+$$ \mathrm{Deg}_B = \frac1n\Big[\sum_{i,j}\mathbb E\log|J_{ji}| - \mathbb E\log\mathrm{pdet}\,J\Big] $$
+</div>
+<p>对 Jacobian 重叠项的符号：Hadamard 不等式给出 $\log\mathrm{pdet}\,J \le \sum_i \log\|J_{:,i}\|$（联合体积不超过各列独立拉伸之积），但 $\sum_{i,j}\log|J_{ji}|$ 含 $n\cdot m$ 项、pdet 只含 $\min(m,n)$ 个奇异值，权重较小时前者远更负，所以 <strong>约定 B 下 deg 恒为负</strong>（实验与测试均已锁定）。</p>
+
+<h3>1.4 两种口径逐项对照</h3>
+
+<table>
+  <tr><th>成分</th><th>离散版（论文）</th><th>连续版（本项目）</th></tr>
+  <tr><td>cause / 注入</td><td>分箱后的联合状态 $C$，$N_c = b^n$ 个状态</td><td>连续均匀注入 $X\sim U(\Omega)$，$H(X)=\sum_i\log w_i$</td></tr>
+  <tr><td>effect / 输出</td><td>分箱后的联合状态 $E$（超出区间 clip）</td><td>$Y = a(WX) + \varepsilon$，高斯噪声模型</td></tr>
+  <tr><td>确定性项</td><td>$-H(E|C)$（确定性映射下 ≈ 0）</td><td>$-H(\varepsilon) = -\frac12\sum_j\log(2\pi e\sigma_j^2)$，σ 来自反传梯度/残差 std</td></tr>
+  <tr><td>非简并 / 体积项</td><td>$H(E)$（输出占用多少 bin）</td><td>$\mathbb E\log\mathrm{pdet}\,J$（局部线性体积）</td></tr>
+  <tr><td>Sensitivity</td><td>$\sum_{i,j} I(T_i;T_j)$，单边扰动、其余固定 0</td><td>$\sum_{i,j}$ edgewise EI（约定 A/B 差别在 term1 份数）</td></tr>
+  <tr><td>Degeneracy</td><td>Sens − EI，<strong>通常 ≥ 0</strong>，含确定性冗余</td><td>约定 B：仅 Jacobian 重叠项，<strong>恒 ≤ 0</strong>；约定 A：含 $\frac{n-1}{n}\cdot(-\frac12\sum_j\log 2\pi e\sigma_j^2) \ge 0$</td></tr>
+  <tr><td>归一化</td><td>论文不归一化（$\log_2 N_c$ 仅用于传统分解）</td><td>统一除以 $n$（per-input-dim）</td></tr>
+  <tr><td>自由参数</td><td>bins 数 $b$（决定曲线幅度，形状不变）</td><td>噪声尺度 $\sigma$（决定 term1 水平）</td></tr>
+  <tr><td>饱和机制</td><td>输出堆到端部 bin → $H(E)$ 下降</td><td>$a'\to 0$ → $\mathbb E\log a' \to -\infty$</td></tr>
+  <tr><td>可比性</td><td colspan="2">趋势（形状、峰位置、训练中的相对变化）可比；绝对值与 degeneracy 符号不可直接比</td></tr>
+</table>
+
+<h3>1.5 单边 1→1 闭式对比</h3>
+<p>单边情形两种口径都有 $\mathrm{Sens} = \mathrm{EI}$、$\mathrm{Deg}=0$（平凡）。连续版可写出闭式：</p>
+<div class="formula">
+$$ \mathrm{EI}(w) = \text{term1} + \log w + \frac{1}{w}\int_0^{w}\log a'(z)\,dz $$
+</div>
+<ul>
+  <li><strong>ReLU</strong>：$a'=1$，$\mathrm{EI} = \text{term1} + \log w$，单调递增；离散版在 $w\approx 1$–$2$ 达峰后因 clip 衰减到 0（输出按 $[0,1]$ 分箱，超出部分堆到最后一个 bin）。</li>
+  <li><strong>Sigmoid</strong>：$z$ 大时 $a'(z)\approx e^{-z}$，$\mathrm{EI} \approx \text{term1} + \log w - w/2$，$w^*\approx 2$ 处达峰后线性衰减；</li>
+  <li><strong>Tanh</strong>：$a'$ 衰减更快（$\approx 4e^{-2z}$），$\mathrm{EI} \approx \text{term1} + \log w - w$，峰值更低。</li>
+</ul>
+<p>即连续版同样复现论文的"先增后减"，只是衰减机制是激活饱和使 $\mathbb E\log a'$ 线性变负，而离散版是分箱饱和。</p>
+
+<h3>1.6 双入单出 2→1 显式对比</h3>
+<p>连续版 $J=[j_a,\ j_b]$，$j_\bullet = w_\bullet\, a'(z)$，$\mathrm{pdet} = \sqrt{j_a^2+j_b^2}$：</p>
+<div class="formula">
+$$ \mathrm{Deg}_B = \mathbb E\log\frac{|j_a\, j_b|}{\sqrt{j_a^2+j_b^2}} \le 0 \qquad\text{（AM–GM：}\ |j_a j_b| \le \tfrac{j_a^2+j_b^2}{2}\ \text{恒成立）} $$
+</div>
+<p>一条边为 0 时取 $\log 0$（代码用 EPS 截断为大负值）；两边均衡时取 $\log(1/\sqrt{2})$。约定 A 下则额外含正的确定性冗余项，$\sigma$ 小时整体为正。离散版对应量 $\mathrm{Deg}_{disc} = I(A;C)|_{do(B=0)} + I(B;C)|_{do(A=0)} - I((A,B);C) \ge 0$，在两个权重都强的象限最大（路径重叠最强），单边为 0 时退化为 0——两种口径的<strong>空间结构一致，符号相反</strong>，这正是图 9 对角线切片中看到的现象。</p>
+
+<h2>2. 实验一：IRIS 训练过程中的连续版 EI 分解</h2>
+
+<p><strong>设置</strong>（与论文一致）：架构 4→5→5→3，sigmoid，no bias，MSE，SGD lr=0.01，batch=10，4000 epochs，权重初始化 $U([-1/\sqrt{fanin}, 1/\sqrt{fanin}])$；每 10 epoch 测量一次，每次 2000 注入样本。</p>
+
+<h3>2.1 连续版结果</h3>
+
+<figure>
+  <img src="results/latest/iris_continuous_ei/loss_curve.png" alt="IRIS loss curve">
+  <figcaption>图 1｜训练/测试 MSE：0.2317 → 0.1178，平稳下降，无明显过拟合。</figcaption>
+</figure>
+
+<figure>
+  <img src="results/latest/iris_continuous_ei/ei_decomposition.png" alt="IRIS continuous EI decomposition">
+  <figcaption>图 2｜左：各层 EI（黑色虚线为 Overall EI，用输出残差 σ）；中：各层连续 Sensitivity（黑线为总和）；右：各层连续 Degeneracy（黑线为总和）。</figcaption>
+</figure>
+
+<p><strong>关键数值（epoch 1 → 4000）</strong>：</p>
+<table>
+  <tr><th>指标</th><th>L1</th><th>L2</th><th>L3</th><th>Total / Overall</th></tr>
+  <tr><td>EI (bits)</td><td>7.99 → 5.70</td><td>1.57 → 2.19</td><td>0.02 → 0.92</td><td>Overall: −12.55 → −8.92</td></tr>
+  <tr><td>Sensitivity (bits)</td><td>−8.53 → −8.35</td><td>−15.43 → −11.05</td><td>−10.80 → −6.20</td><td>−34.77 → −25.59</td></tr>
+  <tr><td>Degeneracy (bits)</td><td>−16.52 → −14.04</td><td>−17.00 → −13.24</td><td>−10.83 → −7.12</td><td>−44.35 → −34.40</td></tr>
+</table>
+
+<p><strong>三点发现</strong>：</p>
+<ul>
+  <li><strong>Sensitivity 上升的主因是权重增长（transmission 项）而非 σ 下降</strong>。以 L3 为例：transmission −62.8 → −42.1 bits（+20.7），sens_term1 仅 8.8 → 11.1（+2.3）。训练使 $|W|$ 增大，$\log|a'W|$ 随之增大。</li>
+  <li><strong>"σ 随训练变小"只在输出层成立</strong>。各层反传梯度 std：L1 0.00043 → 0.0022（变大）、L2 0.0033 → 0.0044（变大）、L3 0.0318 → 0.0228（变小）。浅层梯度 std 被下游权重幅度放大，因此 L1/L2 的 sens_term1 反而下降；只有 Overall EI（用输出残差 σ：0.477 → 0.342）符合"训练越好确定性越强"的直觉，单调上升。</li>
+  <li><strong>Degeneracy 全程为大负值是口径产物</strong>（见第 1.4 节）：逐边求和含 $n\times m$ 个 $\log|J_{ji}|$ 而联合体积只有 $\min(m,n)$ 个奇异值，两者都除 $n$ 后量级天然不对称。曲线在 ~250、~1900、~2300、~3400 epoch 的下凹与各层 EI 的下凹位置一致，对应 loss 下降过程中的权重重整。</li>
+</ul>
+
+<h3>2.2 离散版 IRIS 对照（轻量口径）</h3>
+
+<p>同一次训练轨迹（同 seed，MSE 曲线与连续版完全一致），用论文分箱互信息方法测量：bins=32，每 40 epoch 一个测量点，每点 $3\times10^4$ 注入样本（论文原口径为 $10^7$，此处为速度取轻量）。下图为论文风格的原始 bits（未除 $n$ 归一化）：</p>
+
+<figure>
+  <img src="results/latest/iris_discrete_ei/ei_decomposition.png" alt="IRIS discrete EI decomposition">
+  <figcaption>图 3｜离散版 IRIS 分解：左：各层 EI（黑虚线为总和）；中：离散 Sensitivity；右：离散 Degeneracy。</figcaption>
+</figure>
+
+<p><strong>关键数值（epoch 1 → 4000，原始 bits）</strong>：</p>
+<table>
+  <tr><th>指标</th><th>L1</th><th>L2</th><th>L3</th><th>Total</th></tr>
+  <tr><td>EI</td><td>8.59 → 10.06</td><td>8.50 → 10.52</td><td>7.18 → 10.08</td><td>24.27 → 30.66</td></tr>
+  <tr><td>Sensitivity</td><td>24.89 → 33.13</td><td>22.08 → 43.03</td><td>16.99 → 36.16</td><td>63.96 → 112.32</td></tr>
+  <tr><td>Degeneracy</td><td>16.30 → 23.07</td><td>13.58 → 32.51</td><td>9.81 → 26.08</td><td>39.69 → 81.66</td></tr>
+</table>
+
+<ul>
+  <li>各层 $H(E|C) \approx 0.007$ bits $\ll \log_2 N_c$，确认前馈网络近似确定性映射——这正是论文用 sensitivity 替代 determinism 的原因（第 1.2 节）。</li>
+  <li><strong>Sensitivity 全程上升</strong>（总 +75%），<strong>Degeneracy 在约 2500 epoch 后加速上升</strong>（总 +106%，翻倍以上），EI 只小幅增长（+26%）——与论文 Figure 2/4 的观察一致："runs first demonstrate an increase in sensitivity, and then later an increase in degeneracy"，degeneracy 的后期增长抵消了大部分 sensitivity 对 EI 的贡献。</li>
+  <li>层间结构：<strong>L2（中间隐藏层）的 sensitivity 与 degeneracy 增长最猛</strong>（22.1→43.0、13.6→32.5），是路径重叠增加最多的层。</li>
+</ul>
+
+<h3>2.3 两种口径总对比</h3>
+
+<figure>
+  <img src="results/latest/iris_continuous_vs_discrete.png" alt="IRIS continuous vs discrete comparison">
+  <figcaption>图 4｜上排连续版（除 $n$ 归一化），下排离散版（原始 bits）。注意两排纵轴量级和符号不同，只比较趋势。</figcaption>
+</figure>
+
+<ul>
+  <li><strong>EI</strong>：两种口径都显示训练增强了网络的 causal structure——离散 Total EI 24.3→30.7 bits 单调上升，连续 Overall EI −12.6→−8.9 bits 也单调上升（由残差 σ 0.477→0.342 驱动）。</li>
+  <li><strong>Sensitivity</strong>：两口径同步上升。离散版直接度量单边扰动的传输（权重增大 → 单边 MI 增大）；连续版上升的主因同样是权重增长（transmission 项，见第 2.1 节分解）。</li>
+  <li><strong>Degeneracy</strong>：离散版恒正且后期加速（路径重叠增多），连续版（约定 B）恒负但同步上升（重叠项的量级变化同向）。符号差异来自第 1.3/1.6 节的约定差别，<strong>两口径的 degeneracy 趋势方向一致，都指示"训练中路径重叠增多"</strong>。</li>
+  <li>离散版保留了论文的单位与归一化习惯，可与论文 Figure 2/4 的数值直接对照；连续版的优势是无需分箱、可微分、可精确到逐边/逐神经元（$\sigma_{l,j}$），代价是依赖高斯噪声与局部体积两处近似。</li>
+</ul>
+
+<h2>3. 实验二：论文 Figure 1 简单系统，离散 vs 连续</h2>
+
+<p><strong>设置</strong>：单边 A→B：$w\in[0,27]$（91 点），3 万注入样本，离散 bins ∈ {8,16,32,64}；双入单出 A,B→C：$w_{ac},w_{bc}\in[-9,9]$（41×41 网格），10 万注入样本，bins=32。连续版 σ=0.1 固定。采样范围按论文：sigmoid/ReLU $x\in[0,1]$，tanh $x\in[-1,1]$；输出离散化区间 sigmoid/ReLU $[0,1]$（ReLU 超出部分 clip）、tanh $[-1,1]$。</p>
+
+<h3>3.1 单边 A→B（对应论文 Figure 1a–c）</h3>
+
+<figure>
+  <img src="results/latest/figure1_ei_decomposition/single_edge_ei.png" alt="single edge EI comparison">
+  <figcaption>图 5｜蓝色系为离散版（bins 8→64 由浅到深），黑色虚线为连续版。单边情形 sensitivity ≡ EI、degeneracy ≡ 0。</figcaption>
+</figure>
+
+<ul>
+  <li><strong>Sigmoid / Tanh</strong>：两种口径都"先增后减"，但机制不同——离散版是输出分箱饱和（大 $w$ 时输出堆到两端 bin），连续版是饱和激活使 $\mathbb E\log a'$ 线性变负（第 1.5 节闭式）。</li>
+  <li><strong>ReLU</strong>：连续版 $\mathrm{EI} = \text{term1} + \log w$ 单调增长；离散版在 $w\approx 1$–$2$ 达峰后因 clip 衰减到 0——完整复现论文 Figure 1c 中实线与虚线的分歧。</li>
+</ul>
+
+<h3>3.2 双入单出 A,B→C（对应论文 Figure 1d–f）</h3>
+
+<figure>
+  <img src="results/latest/figure1_ei_decomposition/two_to_one_sigmoid.png" alt="two to one sigmoid heatmaps">
+  <figcaption>图 6｜Sigmoid：上排离散，下排连续；三列分别为 EI / Sensitivity / Degeneracy（同一列共享色标）。</figcaption>
+</figure>
+
+<ul>
+  <li><strong>离散 EI</strong> 呈论文 Figure 1d 的"大致二重对称"山丘形，原点处凹陷（双权重近 0 时输出近似常数）。</li>
+  <li><strong>Sensitivity</strong> 沿坐标轴呈十字形下陷：单边驱动时 sensitivity 退化为单边 MI，小于两边都强时的逐边 MI 之和。</li>
+  <li><strong>离散 Degeneracy</strong> 在两个权重都强的象限最亮——正是"两条路径效果重叠"的区域，与论文 causal plane 中 degeneracy 的含义吻合。</li>
+  <li><strong>连续版</strong>整体结构相似但为负值，零轴处有深谷：某条边权重为 0 时 $\log|J|=\log 0$，代码用 EPS 截断为有限大负值。</li>
+</ul>
+
+<figure>
+  <img src="results/latest/figure1_ei_decomposition/two_to_one_tanh.png" alt="two to one tanh heatmaps">
+  <figcaption>图 7｜Tanh：结构同 sigmoid，左右对称性更强（tanh 为奇函数，$x\in[-1,1]$）。</figcaption>
+</figure>
+
+<figure>
+  <img src="results/latest/figure1_ei_decomposition/two_to_one_relu.png" alt="two to one relu heatmaps">
+  <figcaption>图 8｜ReLU：第三象限（双负权重）神经元死亡——离散 EI ≈ 0、连续版取 EPS 截断大负值；正权重区域活跃，复现论文 Figure 1f 的不对称流形。</figcaption>
+</figure>
+
+<figure>
+  <img src="results/latest/figure1_ei_decomposition/two_to_one_diagonal.png" alt="two to one diagonal slices">
+  <figcaption>图 9｜对角线切片（$w_{ac}=w_{bc}=w$）：实线离散、虚线连续。离散 degeneracy 恒正（$|w|\approx 2$–$3$ 处峰值约 5 bits），连续 degeneracy 恒负——直观展示第 1.6 节的符号差异。连续版在 $w=0$ 处的深谷为 $\log 0$ 截断；ReLU 连续版在 $w<0$ 恒为 0（死亡区）、$w>0$ 按 $\log w$ 增长。</figcaption>
+</figure>
+
+<h2>4. 备注</h2>
+<ul>
+  <li><strong>离散版 IRIS 训练对照</strong>：论文口径为每个测量点 $10^7$ 注入样本 × 每 10 epoch 一个测量点 × 3 层（full EI + 逐边 sensitivity），计算量过大；本文档使用轻量口径（每 40 epoch 一个测量点、每点 $3\times10^4$ 样本）补充离散版 IRIS 曲线，脚本为 <code>experiments/iris_discrete_ei.py</code>。</li>
+  <li>单边与双入单出的解析性质已被单元测试锁定（<code>tests/test_figure1_ei_decomposition.py</code>）：单边 sens=EI、deg=0；单边权重为 0 时 EI=0；双入单出某权重为 0 时离散 deg ≈ 0；连续 2→1 deg ≤ 0（AM–GM 不等式）。</li>
+  <li>复现命令（项目根目录）：
+    <pre>python -m experiments.iris_continuous_ei --outdir results
+python -m experiments.iris_discrete_ei --record-every 40 --ei-samples 30000 --outdir results
+python -m experiments.figure1_ei_decomposition
+python -m unittest discover -s tests -t .</pre>
+  </li>
+</ul>
+
+</main>
+</body>
+</html>

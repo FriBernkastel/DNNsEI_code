@@ -1,0 +1,17 @@
+# 命令: python -m updates.knn_entropy_preview
+# 记录时间: 2026-11-05  （用 Kozachenko-Leonenko kNN 熵替代局部体积近似）
+
+校验 d=3 sigma=0.3: 估计 +0.6422 nats, 理论 +0.6449 nats, 差 -0.0027 (-0.4%)
+校验 d=5 sigma=0.1: 估计 -4.4586 nats, 理论 -4.4182 nats, 差 -0.0403 (-0.9%)
+
+每层 EI（用每层梯度 sigma）：
+  层  尺寸     sigma    h(Y) kNN    h(eps)   EI_knn(bits)  EI_formula(bits)
+L 1  4->5    0.0022   -11.5563   -23.5041        4.309            5.700
+L 2  5->5    0.0044   -10.7714   -20.0258        2.670            2.189
+L 3  5->3    0.0228    -3.0608    -7.0829        1.161            0.915
+
+用残差 sigma=0.342（Overall 口径）：
+  L1: h(Y)=+1.833  h(eps)=+1.735  EI=+0.0352 bits
+  L2: h(Y)=+1.917  h(eps)=+1.735  EI=+0.0524 bits
+  L3: h(Y)=+1.268  h(eps)=+1.041  EI=+0.0653 bits
+  → 合计约 +0.15 bits，全部为正。

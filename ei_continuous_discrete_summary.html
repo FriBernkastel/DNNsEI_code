@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>连续版 EI 与离散版 EI 对比说明</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      --ink: #18202a;
+      --muted: #5a6472;
+      --line: #d8dee8;
+      --panel: #ffffff;
+      --soft: #f5f7fb;
+      --blue: #2457c5;
+      --green: #167a5a;
+      --orange: #a85b12;
+      --red: #a33b42;
+      --shadow: 0 10px 30px rgba(25, 32, 45, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #eef2f7;
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      line-height: 1.65;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 22px 64px;
+    }
+
+    header {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 28px 30px;
+      box-shadow: var(--shadow);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    h2 {
+      margin: 30px 0 14px;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    p { margin: 8px 0; }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #edf1f7;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.94em;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .box.blue { border-top: 4px solid var(--blue); }
+    .box.green { border-top: 4px solid var(--green); }
+    .box.orange { border-top: 4px solid var(--orange); }
+    .box.red { border-top: 4px solid var(--red); }
+
+    .formula {
+      margin: 12px 0;
+      padding: 14px 16px;
+      border: 1px solid #cfd8e6;
+      border-radius: 8px;
+      background: var(--soft);
+      overflow-x: auto;
+    }
+
+    .note {
+      padding: 12px 14px;
+      border-left: 4px solid var(--orange);
+      background: #fff7ec;
+      color: #5d3a11;
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #e8edf5;
+      font-weight: 700;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .pill {
+      display: inline-block;
+      margin: 3px 5px 3px 0;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #cfd8e6;
+      background: #f8fafc;
+      color: #26313f;
+      font-size: 13px;
+    }
+
+    .steps {
+      counter-reset: step;
+      display: grid;
+      gap: 10px;
+    }
+
+    .step {
+      position: relative;
+      padding: 12px 14px 12px 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 14px;
+      top: 13px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    footer {
+      margin-top: 30px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 820px) {
+      .two, .three { grid-template-columns: 1fr; }
+      h1 { font-size: 26px; }
+      .page { padding: 20px 14px 42px; }
+      header { padding: 22px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>连续版 EI 与离散版 EI 对比说明</h1>
+      <p class="subtitle">
+        本文总结当前连续版脚本中的 EI 计算方式，并与论文离散版 EI 计算口径进行对比。
+      </p>
+      <p>
+        当前连续版关注两类量：
+        <span class="pill">层间 EI</span>
+        <span class="pill">Overall EI</span>
+        <span class="pill">梯度 sigma</span>
+        <span class="pill">残差 sigma</span>
+        <span class="pill">Jacobian 体积项</span>
+      </p>
+    </header>
+
+    <section>
+      <h2>1. 连续版 EI 的基本对象</h2>
+      <div class="box blue">
+        <h3>层间映射</h3>
+        <p>对第 \(l\) 层，输入维度为 \(n_l\)，输出维度为 \(m_l\)。层间映射写作：</p>
+        <div class="formula">
+          \[
+          X_l \in \mathbb{R}^{n_l}, \qquad
+          Y_l = f_l(X_l) = \sigma(W_l X_l)
+          \]
+        </div>
+        <p>
+          目前按论文口径使用 <code>bias=False</code>。如果以后保留 bias，则变成
+          \(Y_l=\sigma(W_lX_l+b_l)\)。
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. 连续版层间 EI 公式</h2>
+      <div class="grid two">
+        <div class="box green">
+          <h3>主公式</h3>
+          <p>连续版把层间 EI 写成两个部分：</p>
+          <div class="formula">
+            \[
+            EI_l = \frac{T_{1,l} + T_{2,l}}{n_l}
+            \]
+          </div>
+          <p>
+            其中除以 \(n_l\) 是参考 <code>ei.py</code> 后采用的输入维度归一化。
+            输出到 CSV 的 <code>ei_bits</code> 是归一化后的 EI。
+          </p>
+        </div>
+
+        <div class="box orange">
+          <h3>单位换算</h3>
+          <p>公式先在 nats 中计算，再转换为 bits：</p>
+          <div class="formula">
+            \[
+            EI_{l,\text{bits}} = \frac{EI_{l,\text{nats}}}{\ln 2}
+            \]
+          </div>
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top:16px;">
+        <div class="box blue">
+          <h3>\(T_1\)：确定性 / 噪声项</h3>
+          <p>\(T_1\) 是条件熵的相反数：</p>
+          <div class="formula">
+            \[
+            T_{1,l} = -H(Y_l \mid X_l)
+            = -\frac{1}{2}m_l\log(2\pi e\,\sigma_l^2)
+            \]
+          </div>
+          <p>它由 sigma 控制。sigma 越小，\(T_1\) 越大，表示条件输出更确定。</p>
+        </div>
+
+        <div class="box green">
+          <h3>\(T_2\)：输入体积 + Jacobian 体积项</h3>
+          <p>\(T_2\) 描述输入空间体积和映射的局部体积变化：</p>
+          <div class="formula">
+            \[
+            T_{2,l} = H(X_l) + \mathbb{E}_{x\sim H_{\max}}
+            \left[\log\operatorname{pdet}(J_l(x))\right]
+            \]
+          </div>
+          <p>
+            对 sigmoid 层，EI 注入空间通常是 \([0,1]^{n_l}\)，因此
+            \(H(X_l)=0\)。如果输入每一维宽度为 \(w_i\)，则：
+          </p>
+          <div class="formula">
+            \[
+            H(X_l)=\sum_i \log w_i
+            \]
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Jacobian 体积项怎么计算</h2>
+      <div class="box blue">
+        <h3>解析 Jacobian</h3>
+        <p>当前 sigmoid 层使用解析 Jacobian，而不是自动微分逐点求导：</p>
+        <div class="formula">
+          \[
+          J_l(x)=\frac{\partial Y_l}{\partial X_l}
+          =
+          \operatorname{diag}\left(\sigma'(W_lx)\right)W_l
+          \]
+        </div>
+        <p>其中：</p>
+        <div class="formula">
+          \[
+          \sigma'(z)=\sigma(z)(1-\sigma(z))
+          \]
+        </div>
+      </div>
+
+      <div class="box green" style="margin-top:16px;">
+        <h3>矩形 Jacobian 的 pseudo-logdet</h3>
+        <p>如果 \(J_l\) 是矩形矩阵，例如 \(25\to6\) 或 \(5\to3\)，使用奇异值估计体积项：</p>
+        <div class="formula">
+          \[
+          J_l(x) = U\operatorname{diag}(s_1,\ldots,s_r)V^\top
+          \]
+          \[
+          \log\operatorname{pdet}(J_l(x))
+          =
+          \sum_{k=1}^{r}\log(\max(s_k,\epsilon))
+          \]
+        </div>
+        <p>
+          这里 \(r=\min(n_l,m_l)\)，\(\epsilon\) 用来避免 \(\log(0)\)。
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. sigma 的当前口径</h2>
+      <div class="grid two">
+        <div class="box orange">
+          <h3>层间 EI：梯度 sigma</h3>
+          <p>每一层用自己的反传梯度标准差：</p>
+          <div class="formula">
+            \[
+            \sigma_l = \operatorname{std}\left(
+            \frac{\partial \mathcal{L}}{\partial a_l}
+            \right)
+            \]
+          </div>
+          <p>
+            其中 \(a_l\) 是该层 sigmoid 输出激活，\(\mathcal{L}\) 是 MSE loss。
+          </p>
+        </div>
+
+        <div class="box red">
+          <h3>Overall EI：残差 sigma</h3>
+          <p>Overall EI 不直接相加层间梯度 sigma 版本，而是用最终输出残差标准差重新计算：</p>
+          <div class="formula">
+            \[
+            \sigma_{\text{overall}}
+            =
+            \operatorname{std}(\hat{y}-y_{\text{one-hot}})
+            \]
+          </div>
+          <p>然后用这个 \(\sigma_{\text{overall}}\) 重新计算各层 EI 并求和。</p>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:16px;">
+        因此，图中的 Overall EI 不是简单把 CSV 中的各层 EI 曲线直接相加。
+        各层 EI 使用梯度 sigma；Overall EI 使用最终残差 sigma。
+      </div>
+    </section>
+
+    <section>
+      <h2>5. 连续版计算流程</h2>
+      <div class="steps">
+        <div class="step">训练网络：sigmoid、MSE、SGD、无 bias、论文式权重初始化。</div>
+        <div class="step">每个 batch 反传后，记录各层激活梯度，累计得到每层 \(\sigma_l\)。</div>
+        <div class="step">同时记录最终输出残差，得到 \(\sigma_{\text{overall}}\)。</div>
+        <div class="step">对每一层从最大熵注入空间采样，例如 sigmoid 使用 \([0,1]^n\)。</div>
+        <div class="step">对采样点计算解析 Jacobian 和 SVD pseudo-logdet。</div>
+        <div class="step">计算 \(T_1\)、\(T_2\)、归一化层间 EI 和 Overall EI。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>6. 离散版 EI 的计算方式</h2>
+      <div class="box blue">
+        <h3>核心定义</h3>
+        <p>论文离散版 EI 是最大熵扰动后，层输入状态和层输出状态之间的互信息：</p>
+        <div class="formula">
+          \[
+          EI = I(C;E)
+          =
+          \sum_{c,e}p(c,e)\log_2
+          \frac{p(c,e)}{p(c)p(e)}
+          \]
+        </div>
+        <p>也可以写成：</p>
+        <div class="formula">
+          \[
+          EI = H(E)-H(E\mid C)
+          \]
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top:16px;">
+        <div class="box green">
+          <h3>分箱与状态编码</h3>
+          <p>每个输入/输出神经元的激活值先分到 \(B\) 个 bins 中：</p>
+          <div class="formula">
+            \[
+            c = \operatorname{bin}(x), \qquad e=\operatorname{bin}(y)
+            \]
+          </div>
+          <p>多维输入输出会被编码成联合离散状态，然后统计联合直方图。</p>
+        </div>
+
+        <div class="box orange">
+          <h3>最大熵注入</h3>
+          <p>对 sigmoid 网络，论文在激活函数范围内均匀采样：</p>
+          <div class="formula">
+            \[
+            X_l \sim \operatorname{Uniform}((0,1)^{n_l})
+            \]
+          </div>
+          <p>然后前向得到输出，分箱后估计 \(p(c,e)\)。</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>7. sensitivity 与 degeneracy</h2>
+      <div class="grid two">
+        <div class="box green">
+          <h3>论文符号</h3>
+          <p>论文在 DNN 中使用：</p>
+          <div class="formula">
+            \[
+            EI = sensitivity - degeneracy
+            \]
+          </div>
+          <p>
+            sensitivity 表示边在不重叠情况下传递扰动的能力；
+            degeneracy 表示由于多条输入边重叠导致的可恢复信息损失。
+          </p>
+        </div>
+
+        <div class="box blue">
+          <h3>EI parts / sensitivity</h3>
+          <p>离散版的 pairwise 思路是对每个输入输出神经元对计算 MI：</p>
+          <div class="formula">
+            \[
+            EI_{\text{parts}}(L_1\to L_2)
+            =
+            \sum_{i\in L_1,j\in L_2}
+            I(t_i,t_j)\mid do(L_1=H_{\max})
+            \]
+          </div>
+          <p>当前连续脚本暂时没有计算 edgewise sensitivity，只计算层间 EI 和 Overall EI。</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>8. 连续版与离散版的直接对比</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>维度</th>
+            <th>连续版 EI</th>
+            <th>离散版 EI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>核心量</td>
+            <td>\(T_1 + T_2\)：条件熵项 + Jacobian 体积项</td>
+            <td>\(I(C;E)\)：输入离散状态与输出离散状态的互信息</td>
+          </tr>
+          <tr>
+            <td>扰动输入</td>
+            <td>从最大熵注入空间采样，当前 sigmoid 使用 \([0,1]^n\)</td>
+            <td>同样从激活范围均匀采样，再分箱</td>
+          </tr>
+          <tr>
+            <td>输出处理</td>
+            <td>连续输出直接进入 Jacobian 公式</td>
+            <td>连续输出先分箱成离散状态</td>
+          </tr>
+          <tr>
+            <td>不确定性</td>
+            <td>由 \(\sigma\) 控制：层间用梯度 std，Overall 用残差 std</td>
+            <td>由经验条件熵 \(H(E\mid C)\) 体现</td>
+          </tr>
+          <tr>
+            <td>体积 / 非简并性</td>
+            <td>由 \(\mathbb{E}[\log\operatorname{pdet}(J)]\) 体现</td>
+            <td>由输出状态熵 \(H(E)\) 和状态重叠体现</td>
+          </tr>
+          <tr>
+            <td>归一化</td>
+            <td>当前按输入维度 \(n_l\) 归一化</td>
+            <td>论文图中通常以 bits 报告；也可按状态空间做归一化分析</td>
+          </tr>
+          <tr>
+            <td>主要误差来源</td>
+            <td>sigma 估计、Jacobian 体积近似、连续高斯假设</td>
+            <td>bin 数、样本数、状态空间稀疏、clip/分箱边界</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>9. 当前连续脚本的实验口径摘要</h2>
+      <div class="grid three">
+        <div class="box blue">
+          <h3>IRIS 简单任务</h3>
+          <p><code>4 -> 5 -> 5 -> 3</code></p>
+          <p>sigmoid，无 bias，MSE，SGD，默认 4000 epochs。</p>
+        </div>
+        <div class="box green">
+          <h3>Reduced-MNIST 难任务</h3>
+          <p><code>25 -> 6 -> 6 -> 5</code></p>
+          <p>MNIST digits 0-4，\(28\times28\to5\times5\)，默认 500 epochs。</p>
+        </div>
+        <div class="box orange">
+          <h3>输出文件</h3>
+          <p><code>layer_ei_history.csv</code></p>
+          <p><code>overall_ei_history.csv</code></p>
+          <p><code>loss_curve.png</code> 与 <code>ei_curves.png</code></p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Generated for the continuous/discrete EI experiments in DNNsEI.
+    </footer>
+  </main>
+</body>
+</html>

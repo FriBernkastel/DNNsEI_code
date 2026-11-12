@@ -1,0 +1,12 @@
+# 命令: python -m updates.make_relative_ei_figure
+# 记录时间: 2026-11-04
+
+run dir : results/iris_continuous_ei_20261104_201943
+figure  : results/updates/ei_decomposition_relative.png
+csv     : results/updates/ei_relative.csv
+
+baseline (epoch 1):
+  L1         +7.991 bits  ->  final   +5.695
+  L2         +1.572 bits  ->  final   +2.190
+  L3         +0.025 bits  ->  final   +0.922
+  Overall   -12.552 bits  ->  final   -8.920  (relative +3.632)
