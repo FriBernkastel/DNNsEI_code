@@ -20,7 +20,7 @@ git config user.email "you@example.com"
 ## 1. 每次改完存一版（最重要的一条）
 
 ```
-pwsh -File tools/save.ps1 "说明这次改了什么"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\save.ps1 "说明这次改了什么"
 ```
 
 `save.ps1` 会自动：`git add -A` → 列出改动文件 → 提交（自动带时间戳）→ 显示最近 3 条历史。
@@ -134,7 +134,7 @@ git commit -m "stop tracking generated results"
 
 ```
 # 存一版
-pwsh -File tools/save.ps1 "改了什么"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\save.ps1 "改了什么"
 
 # 看历史 / 看差异
 git log --oneline --graph
